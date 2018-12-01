@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sat Nov 24 16:49:45 2018
-
-@author: Carlos Isaac
-"""
+# """
+# Created on Sat Nov 24 16:49:45 2018
+# 
+# @author: Carlos Isaac
+# """
 import numpy as np
 import cv2
 import glob
@@ -19,7 +19,7 @@ objp[:,:2] = np.mgrid[0:7,0:10].T.reshape(-1,2)
 objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
-images = glob.glob('./calibration_img/*.jpg')
+images = glob.glob('/calibration_img/*.jpg')
 
 for fname in images:
     img = cv2.imread(fname)
