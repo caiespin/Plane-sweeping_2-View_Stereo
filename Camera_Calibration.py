@@ -27,7 +27,7 @@ for fname in images:
     img = cv2.resize(img, (0,0), fx=0.3, fy=0.3) 
     # Find the chess board corners
     ret, corners = cv2.findChessboardCorners(gray, (6,9),None)
-    print(ret)
+    print("Detected corners in picture "+fname+": "+str(ret))
     # If found, add object points, image points (after refining them)
     if ret == True:
         objpoints.append(objp)
@@ -44,8 +44,8 @@ for fname in images:
 
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
 
-print(ret)
-print('\n')    
+print("\nFinal re-projection error: "+str(ret)+"\n")
+print("Camera Matrix: ")    
 print(mtx)
-print('\n')  
+print('\nVector of distortion coefficients:')
 print(dist)
