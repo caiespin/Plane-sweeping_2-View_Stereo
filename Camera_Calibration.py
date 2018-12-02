@@ -155,7 +155,7 @@ plt.subplot(122),plt.imshow(img3)
 plt.show()
 
 cv2.imwrite('epi1.jpg',img5)
-cv2.imwrite('epi2.jpg',img5)
+cv2.imwrite('epi2.jpg',img3)
 
 
 
