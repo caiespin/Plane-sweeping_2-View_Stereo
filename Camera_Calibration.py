@@ -157,8 +157,27 @@ plt.show()
 cv2.imwrite('epi1.jpg',img5)
 cv2.imwrite('epi2.jpg',img3)
 
+focal = mtx[1][1]
+principalPoint = (mtx[0][2],mtx[1][2])
 
+#Mat, E = cv2.findEssentialMat(pts1, pts2, focal, principalPoint, method = cv2.RANSAC, 0.999, 3, mask= noArray() );
 
+E, mask = cv2.findEssentialMat(pts1, pts2, focal, principalPoint, method=cv2.RANSAC, prob=0.999, threshold=3.0)
+
+R1,R2,t = cv2.decomposeEssentialMat(E)
+
+Pose1 = np.concatenate((R1, t),1)
+Pose2 = np.concatenate((R2, t),1)
+
+points2d_1 = np.array(pts1)
+points2d_2 = np.array(pts2)
+#pts1_test = np.array([[pts1[0][0]],[pts1[0][1]]])
+#pts2_test = np.array([[pts2[0][0]],[pts2[0][1]]])
+
+points2d_1 = points2d_1.astype(float).transpose()
+points2d_2 = points2d_2.astype(float).transpose()
+
+P4d = cv2.triangulatePoints(Pose1, Pose2, points2d_1, points2d_2)
     
     
     
