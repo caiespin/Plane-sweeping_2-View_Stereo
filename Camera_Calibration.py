@@ -178,6 +178,28 @@ points2d_1 = points2d_1.astype(float).transpose()
 points2d_2 = points2d_2.astype(float).transpose()
 
 P4d = cv2.triangulatePoints(Pose1, Pose2, points2d_1, points2d_2)
+
+P4d_test = [[P4d[0][0]],[P4d[1][0]],[P4d[2][0]], [P4d[3][0]]]
+P4d_test = P4d_test/P4d_test[3][0]
+P4d_test1 = (P4d_test[0][0],P4d_test[1][0],P4d_test[2][0])
+
+img1 = cv2.imread('./scene_2/0.JPG')
+
+for point in pts1:
+    img1 = cv2.circle(img1,tuple(point),5,(0, 255, 0),-1)
+
+img1 = cv2.resize(img1, (0,0), fx=0.3, fy=0.3) 
+
+cv2.imshow('img',img1)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+R1v = cv2.Rodrigues(R1)
+R1v = R1v[0]
+
+Proj_Points = cv2.projectPoints(P4d_test1,R1v,t,mtx,dist)
+
+
     
     
     
