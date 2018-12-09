@@ -46,14 +46,14 @@ def Camera_Calibration():
             
         cv2.destroyAllWindows()
 
-    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
+    ret, K, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
 
     print("\nFinal re-projection error: "+str(ret)+"\n")
     print("Camera Matrix: ")    
-    print(mtx)
+    print(K)
     print('\nVector of distortion coefficients:')
     print(dist)
-    return  ret, mtx, dist
+    return  ret, K, dist
 
 def undistortion():
     count = 0
@@ -62,7 +62,7 @@ def undistortion():
         #    fname_2 = fname 
         img = cv2.imread(fname)
         #    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        img_u = cv2.undistort(img, mtx, dist)
+        img_u = cv2.undistort(img, K, dist)
         outfname = "./scene_2/" + str(count)+".JPG"
         check = pathlib.Path("./scene_2/0.JPG")
         #print(check.is_file())
@@ -87,7 +87,34 @@ def drawlines(img1,img2,lines,pts1,pts2):
     return img1,img2
 
 
-ret, mtx, dist = Camera_Calibration()    
+def Homographies(Points3D, RotMtx, tvec, K):
+    H = ()
+    K = np.asmatrix(K)
+    I =np.eye(3, dtype='float64')
+    zero = np.float64([[0,0,0]]).T
+    n = np.float64([0,0,-1])
+    minVal = Points3D.min()
+    maxVal = Points3D.max()
+    Depths = np.linspace(minVal, maxVal, num=20)
+    P1 = np.concatenate((I, zero),1)
+    P1_aux = np.concatenate((n, [Depths[0]]),0).reshape(1,4)
+    P1 = np.concatenate([P1, P1_aux],0)
+    P1 = np.asmatrix(P1)
+    P2 = np.concatenate((R2, t),1)
+    P2_aux = np.concatenate((n, [Depths[0]]),0).reshape(1,4)
+    P2 = np.concatenate([P2, P2_aux],0)
+    P2 = np.asmatrix(P2)
+    for d in Depths:
+        P1[3,3] = d
+        P2[3,3] = d
+        h = P1 @ P2.I
+        h = h[0:3,0:3]
+        h = K @ (h @ K.I)
+        H = H + (h,)
+    return H
+    
+
+ret, K, dist = Camera_Calibration()    
 undistortion()
 
 #
@@ -160,8 +187,8 @@ plt.show()
 cv2.imwrite('epi1.jpg',img5)
 cv2.imwrite('epi2.jpg',img3)
 
-focal = mtx[1][1]
-principalPoint = (mtx[0][2],mtx[1][2])
+focal = K[1][1]
+principalPoint = (K[0][2],K[1][2])
 
 #Mat, E = cv2.findEssentialMat(pts1, pts2, focal, principalPoint, method = cv2.RANSAC, 0.999, 3, mask= noArray() );
 
@@ -169,19 +196,18 @@ E, mask = cv2.findEssentialMat(pts1, pts2, focal, principalPoint, method=cv2.RAN
 
 R1,R2,t = cv2.decomposeEssentialMat(E)
 
-origin = np.float64([0,0,0])
-origin = origin[:, np.newaxis]
+origin = np.float64([[0,0,0]]).T
 
 Project1 = np.concatenate((np.eye(3, dtype='float64'), origin),1)
-Project1 = mtx @ Project1
+Project1 = K @ Project1
 Project2_1 = np.concatenate((R1, t),1)
-Project2_1 = mtx @ Project2_1
+Project2_1 = K @ Project2_1
 Project2_2 = np.concatenate((R1, -t),1)
-Project2_2 = mtx @ Project2_2
+Project2_2 = K @ Project2_2
 Project2_3 = np.concatenate((R2, t),1)
-Project2_3 = mtx @ Project2_3
+Project2_3 = K @ Project2_3
 Project2_4 = np.concatenate((R2, -t),1)
-Project2_4 = mtx @ Project2_4
+Project2_4 = K @ Project2_4
 
 points2d_1_aux0 = np.array(pts1)
 points2d_2_aux0 = np.array(pts2)
@@ -213,7 +239,7 @@ P_T_2D = cv2.convertPointsToHomogeneous(P_T_2D)
 
 PixelP = P_T_2D[:,0,:].T
 
-PixelP = mtx @ PixelP
+PixelP = K @ PixelP
 
 PixelP = cv2.convertPointsFromHomogeneous(PixelP.T)
 
@@ -233,8 +259,9 @@ cv2.imshow('img',img1)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
-minVal = Points3D.min()
-maxVal = Points3D.max()
+H = Homographies(Points3D, R2, t, K)
+
+
 
 
 
