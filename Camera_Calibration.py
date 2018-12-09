@@ -172,8 +172,16 @@ R1,R2,t = cv2.decomposeEssentialMat(E)
 origin = np.float64([0,0,0])
 origin = origin[:, np.newaxis]
 
-Pose1 = np.concatenate((R1, origin),1)
-Pose2 = np.concatenate((R2, -t),1)
+Project1 = np.concatenate((np.eye(3, dtype='float64'), origin),1)
+Project1 = mtx @ Project1
+Project2_1 = np.concatenate((R1, t),1)
+Project2_1 = mtx @ Project2_1
+Project2_2 = np.concatenate((R1, -t),1)
+Project2_2 = mtx @ Project2_2
+Project2_3 = np.concatenate((R2, t),1)
+Project2_3 = mtx @ Project2_3
+Project2_4 = np.concatenate((R2, -t),1)
+Project2_4 = mtx @ Project2_4
 
 points2d_1_aux0 = np.array(pts1)
 points2d_2_aux0 = np.array(pts2)
@@ -189,11 +197,30 @@ points2d_2 = points2d_2_aux.astype(float).transpose()
 #pts2_test = np.array([[pts2[0][0]],[pts2[0][1]]])
 
 
-P_Triang = cv2.triangulatePoints(Pose1, Pose2, points2d_1, points2d_2)
+P_Triang1 = cv2.triangulatePoints(Project1, Project2_1, points2d_1, points2d_2)
+P_Triang2 = cv2.triangulatePoints(Project1, Project2_2, points2d_1, points2d_2)
+P_Triang3 = cv2.triangulatePoints(Project1, Project2_3, points2d_1, points2d_2)
+P_Triang4 = cv2.triangulatePoints(Project1, Project2_4, points2d_1, points2d_2)
 
-P_T_3D = cv2.convertPointsFromHomogeneous(P_Triang.transpose())
+P_T_3D = cv2.convertPointsFromHomogeneous(P_Triang3.transpose())
 
-P_T_H = cv2.convertPointsToHomogeneous(P_T_3D)
+P_T_2D = cv2.convertPointsFromHomogeneous(P_T_3D)
+
+P_T_2D = cv2.convertPointsToHomogeneous(P_T_2D)
+
+PixelP = P_T_2D[:,0,:].T
+
+PixelP = mtx @ PixelP
+
+PixelP = cv2.convertPointsFromHomogeneous(PixelP)
+
+
+#for point in P_T_3D:
+#    projected_PC = point
+#    projected_PC = projected_PC /projected_PC[0][2]
+#    projected_PCn = mtx @ projected_PC  
+#    print(projected_PC)
+
 
 #[rvec, J] = cv2.Rodrigues(R1)
 #
@@ -206,18 +233,25 @@ P_T_H = cv2.convertPointsToHomogeneous(P_T_3D)
 
 img1 = cv2.imread('./scene_2/0.JPG')
 
-for point in points2d_1.astype(int).transpose():
-    img1 = cv2.circle(img1,tuple(point),5,(0, 255, 0),-1)
+
     
 #for point in P_T_H:
 #    projected_PC = Pose1 @ point.transpose()
 #    projected_PCn = mtx @ projected_PC
     
-for point in P_T_3D:
-    projected_PC = point / point[0][2]
-    #projected_PCn = mtx @ projected_PC    
+  
 
 #    img1 = cv2.circle(img1,tuple(projected_P),5,(0, 255, 0),-1)
+    
+#Print_P_T_2D = P_T_2D.astype(int)
+   
+#P_3D_Pixel = np.true_divide(P_T_3D[:2,:], P_T_3D[:,[-1]])
+    
+for point in points2d_1.astype(int).transpose():
+    img1 = cv2.circle(img1,tuple(point),5,(0, 255, 0),-1)
+
+for point in PixelP.astype(int):
+    img1 = cv2.circle(img1,tuple(point[0]),5,(255, 0, 0),-1)
 
 img1 = cv2.resize(img1, (0,0), fx=0.3, fy=0.3) 
 
