@@ -8,6 +8,7 @@ import numpy as np
 import cv2
 import glob
 from matplotlib import pyplot as plt
+import pathlib
 
 def Camera_Calibration():
     # termination criteria
@@ -26,7 +27,7 @@ def Camera_Calibration():
     for fname in images:
         img = cv2.imread(fname)
         gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        img = cv2.resize(img, (0,0), fx=0.3, fy=0.3) 
+        #img = cv2.resize(img, (0,0), fx=0.3, fy=0.3) 
         # Find the chess board corners
         ret, corners = cv2.findChessboardCorners(gray, (6,9),None)
 #        print("Detected corners in picture "+fname+": "+str(ret))
@@ -39,6 +40,7 @@ def Camera_Calibration():
             
             # Draw and display the corners
             cv2.drawChessboardCorners(img, (9,6), corners,ret)
+            cv2.imwrite('./calibration_img/calibration1.JPG',img)
             cv2.imshow('img',img)
             cv2.waitKey(500)
             
@@ -62,9 +64,10 @@ def undistortion():
         #    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
         img_u = cv2.undistort(img, mtx, dist)
         outfname = "./scene_2/" + str(count)+".JPG"
-        #outfname = pathlib.Path('scene_1' )
-        print(outfname)
-        cv2.imwrite(outfname,img_u)
+        check = pathlib.Path("./scene_2/0.JPG")
+        #print(check.is_file())
+        if not check.is_file():
+            cv2.imwrite(str(outfname),img_u)
         count = count + 1
 
 
@@ -124,7 +127,7 @@ pts2 = []
 
 # ratio test as per Lowe's paper
 for i,(m,n) in enumerate(matches):
-    if m.distance < 0.8*n.distance:
+    if m.distance < 0.5*n.distance:
         good.append(m)
         pts2.append(kp2[m.trainIdx].pt)
         pts1.append(kp1[m.queryIdx].pt)
@@ -166,27 +169,48 @@ E, mask = cv2.findEssentialMat(pts1, pts2, focal, principalPoint, method=cv2.RAN
 
 R1,R2,t = cv2.decomposeEssentialMat(E)
 
-Pose1 = np.concatenate((R1, t),1)
-Pose2 = np.concatenate((R2, t),1)
+Pose2 = np.concatenate((R1, t),1)
+Pose1 = np.concatenate((R2, -t),1)
 
-points2d_1 = np.array(pts1)
-points2d_2 = np.array(pts2)
+points2d_1_aux0 = np.array(pts1)
+points2d_2_aux0 = np.array(pts2)
+
+points2d_1_aux = points2d_1_aux0[1500:1600]
+points2d_2_aux = points2d_2_aux0[1500:1600]
+
+points2d_1 = points2d_1_aux.astype(float).transpose()
+points2d_2 = points2d_2_aux.astype(float).transpose()
+
+
 #pts1_test = np.array([[pts1[0][0]],[pts1[0][1]]])
 #pts2_test = np.array([[pts2[0][0]],[pts2[0][1]]])
 
-points2d_1 = points2d_1.astype(float).transpose()
-points2d_2 = points2d_2.astype(float).transpose()
 
-P4d = cv2.triangulatePoints(Pose1, Pose2, points2d_1, points2d_2)
+P_Triang = cv2.triangulatePoints(Pose1, Pose2, points2d_1, points2d_2)
 
-P4d_test = [[P4d[0][0]],[P4d[1][0]],[P4d[2][0]], [P4d[3][0]]]
-P4d_test = P4d_test/P4d_test[3][0]
-P4d_test1 = (P4d_test[0][0],P4d_test[1][0],P4d_test[2][0])
+P_T_3D = cv2.convertPointsFromHomogeneous(P_Triang.transpose())
+
+P_T_H = cv2.convertPointsToHomogeneous(P_T_3D)
+
+#[rvec, J] = cv2.Rodrigues(R1)
+#
+#projected_P = cv2.projectPoints(P_T_3D, rvec, t, mtx, dist, J)
+
+
+#P4d_test = [[P4d[0][0]],[P4d[1][0]],[P4d[2][0]], [P4d[3][0]]]
+#P4d_test = P4d_test/P4d_test[3][0]
+#P4d_test1 = (P4d_test[0][0],P4d_test[1][0],P4d_test[2][0])
 
 img1 = cv2.imread('./scene_2/0.JPG')
 
-for point in pts1:
+for point in points2d_1.astype(int).transpose():
     img1 = cv2.circle(img1,tuple(point),5,(0, 255, 0),-1)
+    
+for point in P_T_H:
+    projected_PC = Pose1 @ point.transpose()
+    projected_PCn = mtx @ projected_PC
+    
+#    img1 = cv2.circle(img1,tuple(projected_P),5,(0, 255, 0),-1)
 
 img1 = cv2.resize(img1, (0,0), fx=0.3, fy=0.3) 
 
@@ -197,7 +221,7 @@ cv2.destroyAllWindows()
 R1v = cv2.Rodrigues(R1)
 R1v = R1v[0]
 
-Proj_Points = cv2.projectPoints(P4d_test1,R1v,t,mtx,dist)
+#Proj_Points = cv2.projectPoints(P4d_test1,R1v,t,mtx,dist)
 
 
     
