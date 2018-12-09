@@ -204,6 +204,9 @@ P_Triang4 = cv2.triangulatePoints(Project1, Project2_4, points2d_1, points2d_2)
 
 P_T_3D = cv2.convertPointsFromHomogeneous(P_Triang3.transpose())
 
+Points3D = P_T_3D[:,0,:]
+Points3D = Points3D[:,2]
+
 P_T_2D = cv2.convertPointsFromHomogeneous(P_T_3D)
 
 P_T_2D = cv2.convertPointsToHomogeneous(P_T_2D)
@@ -212,40 +215,11 @@ PixelP = P_T_2D[:,0,:].T
 
 PixelP = mtx @ PixelP
 
-PixelP = cv2.convertPointsFromHomogeneous(PixelP)
+PixelP = cv2.convertPointsFromHomogeneous(PixelP.T)
 
-
-#for point in P_T_3D:
-#    projected_PC = point
-#    projected_PC = projected_PC /projected_PC[0][2]
-#    projected_PCn = mtx @ projected_PC  
-#    print(projected_PC)
-
-
-#[rvec, J] = cv2.Rodrigues(R1)
-#
-#projected_P = cv2.projectPoints(P_T_3D, rvec, t, mtx, dist, J)
-
-
-#P4d_test = [[P4d[0][0]],[P4d[1][0]],[P4d[2][0]], [P4d[3][0]]]
-#P4d_test = P4d_test/P4d_test[3][0]
-#P4d_test1 = (P4d_test[0][0],P4d_test[1][0],P4d_test[2][0])
 
 img1 = cv2.imread('./scene_2/0.JPG')
 
-
-    
-#for point in P_T_H:
-#    projected_PC = Pose1 @ point.transpose()
-#    projected_PCn = mtx @ projected_PC
-    
-  
-
-#    img1 = cv2.circle(img1,tuple(projected_P),5,(0, 255, 0),-1)
-    
-#Print_P_T_2D = P_T_2D.astype(int)
-   
-#P_3D_Pixel = np.true_divide(P_T_3D[:2,:], P_T_3D[:,[-1]])
     
 for point in points2d_1.astype(int).transpose():
     img1 = cv2.circle(img1,tuple(point),5,(0, 255, 0),-1)
@@ -259,10 +233,11 @@ cv2.imshow('img',img1)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
-R1v = cv2.Rodrigues(R1)
-R1v = R1v[0]
+minVal = Points3D.min()
+maxVal = Points3D.max()
 
-#Proj_Points = cv2.projectPoints(P4d_test1,R1v,t,mtx,dist)
+
+
 
 
     
