@@ -41,6 +41,7 @@ def Camera_Calibration():
             # Draw and display the corners
             cv2.drawChessboardCorners(img, (9,6), corners,ret)
             cv2.imwrite('./calibration_img/calibration1.JPG',img)
+            plt.imshow(img)
             cv2.imshow('img',img)
             cv2.waitKey(500)
             
@@ -212,11 +213,11 @@ Project2_4 = K @ Project2_4
 points2d_1_aux0 = np.array(pts1)
 points2d_2_aux0 = np.array(pts2)
 
-points2d_1_aux = points2d_1_aux0[1500:1600]
-points2d_2_aux = points2d_2_aux0[1500:1600]
+#points2d_1_aux = points2d_1_aux0[1500:1600]
+#points2d_2_aux = points2d_2_aux0[1500:1600]
 
-points2d_1 = points2d_1_aux.astype(float).transpose()
-points2d_2 = points2d_2_aux.astype(float).transpose()
+points2d_1 = points2d_1_aux0.astype(float).transpose()
+points2d_2 = points2d_2_aux0.astype(float).transpose()
 
 
 #pts1_test = np.array([[pts1[0][0]],[pts1[0][1]]])
@@ -248,18 +249,47 @@ img1 = cv2.imread('./scene_2/0.JPG')
 
     
 for point in points2d_1.astype(int).transpose():
-    img1 = cv2.circle(img1,tuple(point),5,(0, 255, 0),-1)
+    img1 = cv2.circle(img1,tuple(point),10,(0, 255, 0),-1)
 
 for point in PixelP.astype(int):
-    img1 = cv2.circle(img1,tuple(point[0]),5,(255, 0, 0),-1)
+    img1 = cv2.circle(img1,tuple(point[0]),6,(255, 0, 0),-1)
 
 img1 = cv2.resize(img1, (0,0), fx=0.3, fy=0.3) 
 
-cv2.imshow('img',img1)
+plt.imshow(img1)
+
+cv2.imwrite('Re-projectionPoints.png',img1)
+
+#cv2.imshow('img',img1)
+#cv2.waitKey(0)
+#cv2.destroyAllWindows()
+
+H = Homographies(Points3D, R2, t, K)
+
+img1 = cv2.imread('./scene_2/0.JPG')
+img1 = cv2.cvtColor(img1,cv2.COLOR_BGR2GRAY)
+
+Wimages = ()
+for h in H:
+    imgWarp = cv2.warpPerspective(img2, h, (img2.shape[1], img2.shape[0]))
+    Wimages = Wimages + (imgWarp,)
+
+count = 0   
+for img in Wimages:
+    imgWarp = cv2.addWeighted(img1, 0.5, img, 0.5, 0)
+    outfname = "Iwarp" + str(count)+".png"
+    cv2.imwrite(outfname,imgWarp)
+    count = count + 1
+    
+imgWarp = cv2.addWeighted(img1, 0.5, Wimages[0], 0.5, 0)
+
+imgWarp = cv2.resize(imgWarp, (0,0), fx=0.3, fy=0.3) 
+cv2.imshow('img',imgWarp)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
-H = Homographies(Points3D, R2, t, K)
+
+
 
 
 
