@@ -169,8 +169,11 @@ E, mask = cv2.findEssentialMat(pts1, pts2, focal, principalPoint, method=cv2.RAN
 
 R1,R2,t = cv2.decomposeEssentialMat(E)
 
-Pose2 = np.concatenate((R1, t),1)
-Pose1 = np.concatenate((R2, -t),1)
+origin = np.float64([0,0,0])
+origin = origin[:, np.newaxis]
+
+Pose1 = np.concatenate((R1, origin),1)
+Pose2 = np.concatenate((R2, -t),1)
 
 points2d_1_aux0 = np.array(pts1)
 points2d_2_aux0 = np.array(pts2)
@@ -206,10 +209,14 @@ img1 = cv2.imread('./scene_2/0.JPG')
 for point in points2d_1.astype(int).transpose():
     img1 = cv2.circle(img1,tuple(point),5,(0, 255, 0),-1)
     
-for point in P_T_H:
-    projected_PC = Pose1 @ point.transpose()
-    projected_PCn = mtx @ projected_PC
+#for point in P_T_H:
+#    projected_PC = Pose1 @ point.transpose()
+#    projected_PCn = mtx @ projected_PC
     
+for point in P_T_3D:
+    projected_PC = point / point[0][2]
+    #projected_PCn = mtx @ projected_PC    
+
 #    img1 = cv2.circle(img1,tuple(projected_P),5,(0, 255, 0),-1)
 
 img1 = cv2.resize(img1, (0,0), fx=0.3, fy=0.3) 
