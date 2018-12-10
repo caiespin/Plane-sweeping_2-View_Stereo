@@ -94,8 +94,8 @@ def drawlines(img1,img2,lines,pts1,pts2):
         x0,y0 = map(int, [0, -r[2]/r[1] ])
         x1,y1 = map(int, [c, -(r[2]+r[0]*c)/r[1] ])
         img1 = cv2.line(img1, (x0,y0), (x1,y1), color,1)
-        img1 = cv2.circle(img1,tuple(pt1),5,color,-1)
-        img2 = cv2.circle(img2,tuple(pt2),5,color,-1)
+        img1 = cv2.circle(img1,tuple(pt1),7,color,-1)
+        img2 = cv2.circle(img2,tuple(pt2),7,color,-1)
     return img1,img2
 
 
@@ -133,6 +133,7 @@ def ImgAbsDiff(img1, Wimages):
     ImgAbsDiff = ()  
     for img in Wimages:
         absDiff = cv2.absdiff(img1, img)
+ #       absDiff = cv2.GaussianBlur(absDiff, (15,15),0)
         absDiff = cv2.boxFilter(absDiff, -1, (15,15), -1)
         ImgAbsDiff = ImgAbsDiff + (absDiff,)    
     return ImgAbsDiff
@@ -204,6 +205,8 @@ F, mask = cv2.findFundamentalMat(pts1,pts2,cv2.FM_LMEDS)
 pts1 = pts1[mask.ravel()==1]
 pts2 = pts2[mask.ravel()==1]
 
+#pts1 = np.concatenate((pts1[0:10], pts1[1000:1010]), axis=0)
+#pts2 = np.concatenate((pts2[0:10], pts2[1000:1010]), axis=0)
 
 # Find epilines corresponding to points in right image (second image) and
 # drawing its lines on left image
@@ -221,8 +224,10 @@ plt.subplot(121),plt.imshow(img5)
 plt.subplot(122),plt.imshow(img3)
 plt.show()
 
-cv2.imwrite('epi1.jpg',img5)
-cv2.imwrite('epi2.jpg',img3)
+cv2.imwrite('epi1.jpg',img3)
+cv2.imwrite('epi2.jpg',img4)
+cv2.imwrite('epi3.jpg',img5)
+cv2.imwrite('epi4.jpg',img6)
 
 focal = K[1][1]
 principalPoint = (K[0][2],K[1][2])
@@ -288,13 +293,13 @@ for point in points2d_1.astype(int).transpose():
     img1 = cv2.circle(img1,tuple(point),10,(0, 255, 0),-1)
 
 for point in PixelP.astype(int):
-    img1 = cv2.circle(img1,tuple(point[0]),6,(0, 0, 255),-1)
+    img1 = cv2.circle(img1,tuple(point[0]),6,(255, 0, 0),-1)
 
-img1 = cv2.resize(img1, (0,0), fx=0.3, fy=0.3) 
+#img1 = cv2.resize(img1, (0,0), fx=0.3, fy=0.3) 
 
 plt.imshow(img1)
 
-cv2.imwrite('Re-projectionPoints.png',img1)
+cv2.imwrite('Re-projectionPoints.JPG',img1)
 
 #cv2.imshow('img',img1)
 #cv2.waitKey(0)
@@ -320,6 +325,7 @@ for img in Wimages:
     imgWarp = cv2.addWeighted(img1, 0.5, img, 0.5, 0)
 #    Warped = Warped + (imgWarp,)
     outfname = "./Plane_Sweeping/Iwarp" + str(count)+".jpg"
+    imgWarp = cv2.resize(imgWarp, (0,0), fx=0.3, fy=0.3)
     cv2.imwrite(outfname,imgWarp)
     count = count + 1
 
@@ -347,6 +353,7 @@ ImDepthMap = MakeDepthMap(absDifImg, Depths)
 
 ImDepthMap = cv2.resize(ImDepthMap, (0,0), fx=0.3, fy=0.3)
 
+cv2.imwrite("ImDepthMap.JPG",ImDepthMap)
 plt.imshow(ImDepthMap)
  
 #cv2.imshow('img',ImDepthMap)
@@ -354,6 +361,8 @@ plt.imshow(ImDepthMap)
 #cv2.destroyAllWindows()
 
 #================================Deliverables==================================
+
+#-----------------------------Camera Calibration------------------------------
 
 imagesCal = ReadMultipleImages('./Cam_Calibration/*.JPG','CamCal_')
 
@@ -380,6 +389,37 @@ plt.imshow(ImsCal)
 
 cv2.imwrite("CamCal.JPG",ImsCal)
 
+#-----------------------------Image Warping------------------------------
+
+imagesWarp = ReadMultipleImages('./Warped_Img/*.JPG','Iwarp')
+
+#Concatenate horizontaly 
+ImsWarp_r1 = np.concatenate((cv2.resize(imagesWarp[0], (0,0), fx=0.2, fy=0.2), cv2.resize(imagesWarp[1], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsWarp_r1 = np.concatenate((ImsWarp_r1, cv2.resize(imagesWarp[2], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsWarp_r1 = np.concatenate((ImsWarp_r1, cv2.resize(imagesWarp[3], (0,0), fx=0.2, fy=0.2)), axis=1)
+
+ImsWarp_r2 = np.concatenate((cv2.resize(imagesWarp[4], (0,0), fx=0.2, fy=0.2), cv2.resize(imagesWarp[5], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsWarp_r2 = np.concatenate((ImsWarp_r2, cv2.resize(imagesWarp[6], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsWarp_r2 = np.concatenate((ImsWarp_r2, cv2.resize(imagesWarp[7], (0,0), fx=0.2, fy=0.2)), axis=1)
+
+ImsWarp_r3 = np.concatenate((cv2.resize(imagesWarp[8], (0,0), fx=0.2, fy=0.2), cv2.resize(imagesWarp[9], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsWarp_r3 = np.concatenate((ImsWarp_r3, cv2.resize(imagesWarp[10], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsWarp_r3 = np.concatenate((ImsWarp_r3, cv2.resize(imagesWarp[11], (0,0), fx=0.2, fy=0.2)), axis=1)
+
+ImsWarp_r4 = np.concatenate((cv2.resize(imagesWarp[12], (0,0), fx=0.2, fy=0.2), cv2.resize(imagesWarp[13], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsWarp_r4 = np.concatenate((ImsWarp_r4, cv2.resize(imagesWarp[14], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsWarp_r4 = np.concatenate((ImsWarp_r4, cv2.resize(imagesWarp[15], (0,0), fx=0.2, fy=0.2)), axis=1)
+
+ImsWarp_r5 = np.concatenate((cv2.resize(imagesWarp[16], (0,0), fx=0.2, fy=0.2), cv2.resize(imagesWarp[17], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsWarp_r5 = np.concatenate((ImsWarp_r5, cv2.resize(imagesWarp[18], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsWarp_r5 = np.concatenate((ImsWarp_r5, cv2.resize(imagesWarp[19], (0,0), fx=0.2, fy=0.2)), axis=1)
+#Concatenate verticaly
+ImsWarp_C2 = np.concatenate((ImsWarp_r1, ImsWarp_r2), axis=0)
+ImsWarp_C3 = np.concatenate((ImsWarp_C2, ImsWarp_r3), axis=0)
+ImsWarp_C4 = np.concatenate((ImsWarp_C3, ImsWarp_r4), axis=0)
+ImsWarp = np.concatenate((ImsWarp_C4, ImsWarp_r5), axis=0)
+
+cv2.imwrite("ImagesWarping.JPG",ImsWarp)
 
 
 
