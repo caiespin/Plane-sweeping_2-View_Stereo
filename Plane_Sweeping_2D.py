@@ -2,7 +2,7 @@
 # """
 # Created on Sat Nov 24 16:49:45 2018
 # 
-# @author: Carlos Isaac
+# @author: Carlos Isaac and Aaron Hunter
 # """
 import numpy as np
 import cv2
@@ -57,6 +57,15 @@ def Camera_Calibration():
     print('\nVector of distortion coefficients:')
     print(dist)
     return  ret, K, dist
+
+def ReadMultipleImages(dir,cond):
+    images = ()
+    filenames = glob.glob(dir)
+    for file in filenames:
+        if cond in file:
+            img = cv2.imread(file)
+            images = images + (img,)
+    return images
 
 def undistortion():
     count = 0
@@ -146,7 +155,6 @@ def MakeDepthMap(absDifImg, Depths):
 ret, K, dist = Camera_Calibration()    
 undistortion()
 
-#
 #img = cv2.imread('./scene_1/1.JPG')
 #gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 #sift = cv2.xfeatures2d.SIFT_create()
@@ -323,10 +331,13 @@ for img in absDifImg:
     
 
 
-imgWarp = cv2.resize(imgWarp, (0,0), fx=0.3, fy=0.3) 
-cv2.imshow('img',imgWarp)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+imgWarp = cv2.resize(imgWarp, (0,0), fx=0.3, fy=0.3)
+
+plt.imshow(imgWarp)
+ 
+#cv2.imshow('img',imgWarp)
+#cv2.waitKey(0)
+#cv2.destroyAllWindows()
 
 minVal = Points3D.min()
 maxVal = Points3D.max()
@@ -334,14 +345,40 @@ Depths = np.linspace(minVal, maxVal, num=20)
 
 ImDepthMap = MakeDepthMap(absDifImg, Depths)
 
-ImDepthMap = cv2.resize(ImDepthMap, (0,0), fx=0.3, fy=0.3) 
-cv2.imshow('img',ImDepthMap)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+ImDepthMap = cv2.resize(ImDepthMap, (0,0), fx=0.3, fy=0.3)
+
+plt.imshow(ImDepthMap)
+ 
+#cv2.imshow('img',ImDepthMap)
+#cv2.waitKey(0)
+#cv2.destroyAllWindows()
+
+#================================Deliverables==================================
+
+imagesCal = ReadMultipleImages('./Cam_Calibration/*.JPG','CamCal_')
+
+#Concatenate horizontaly 
+ImsCal_r1 = np.concatenate((cv2.resize(imagesCal[0], (0,0), fx=0.2, fy=0.2), cv2.resize(imagesCal[1], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsCal_r1 = np.concatenate((ImsCal_r1, cv2.resize(imagesCal[2], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsCal_r1 = np.concatenate((ImsCal_r1, cv2.resize(imagesCal[3], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsCal_r2 = np.concatenate((cv2.resize(imagesCal[4], (0,0), fx=0.2, fy=0.2), cv2.resize(imagesCal[5], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsCal_r2 = np.concatenate((ImsCal_r2, cv2.resize(imagesCal[6], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsCal_r2 = np.concatenate((ImsCal_r2, cv2.resize(imagesCal[7], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsCal_r3 = np.concatenate((cv2.resize(imagesCal[8], (0,0), fx=0.2, fy=0.2), cv2.resize(imagesCal[9], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsCal_r3 = np.concatenate((ImsCal_r3, cv2.resize(imagesCal[10], (0,0), fx=0.2, fy=0.2)), axis=1)
+ImsCal_r3 = np.concatenate((ImsCal_r3, cv2.resize(imagesCal[11], (0,0), fx=0.2, fy=0.2)), axis=1)
+#Concatenate verticaly
+ImsCal_C2 = np.concatenate((ImsCal_r1, ImsCal_r2), axis=0)
+ImsCal = np.concatenate((ImsCal_C2, ImsCal_r3), axis=0)
 
 
+plt.imshow(ImsCal)
 
+#cv2.imshow('img',ImsCal)
+#cv2.waitKey(0)
+#cv2.destroyAllWindows()
 
+cv2.imwrite("CamCal.JPG",ImsCal)
 
 
 
