@@ -8,9 +8,10 @@ import numpy as np
 import cv2
 import glob
 from matplotlib import pyplot as plt
-import pathlib
+
 
 def Camera_Calibration():
+    ChessBoard = ()
     # termination criteria
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
@@ -22,15 +23,14 @@ def Camera_Calibration():
     objpoints = [] # 3d point in real world space
     imgpoints = [] # 2d points in image plane.
 
-    images = glob.glob('./calibration_img/*.JPG')
-
+    images = glob.glob('./Cam_Calibration/*.JPG')
+    counter = 0
     for fname in images:
         img = cv2.imread(fname)
         gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
         #img = cv2.resize(img, (0,0), fx=0.3, fy=0.3) 
         # Find the chess board corners
         ret, corners = cv2.findChessboardCorners(gray, (6,9),None)
-#        print("Detected corners in picture "+fname+": "+str(ret))
         # If found, add object points, image points (after refining them)
         if ret == True:
             objpoints.append(objp)
@@ -40,13 +40,15 @@ def Camera_Calibration():
             
             # Draw and display the corners
             cv2.drawChessboardCorners(img, (9,6), corners,ret)
-            cv2.imwrite('./calibration_img/calibration1.JPG',img)
-            plt.imshow(img)
-            cv2.imshow('img',img)
-            cv2.waitKey(500)
-            
+            ChessBoard = ChessBoard + (img,)
+            outfname = "./Cam_Calibration/CamCal_" + str(counter)+".JPG"
+            cv2.imwrite(outfname,img)
+#            plt.imshow(img)
+#            cv2.imshow('img',img)
+#            cv2.waitKey(500)            
         cv2.destroyAllWindows()
-
+        counter = counter +1
+        
     ret, K, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
 
     print("\nFinal re-projection error: "+str(ret)+"\n")
@@ -58,17 +60,17 @@ def Camera_Calibration():
 
 def undistortion():
     count = 0
-    images = glob.glob('./scene_2/*.JPG')
+    images = glob.glob('./Scene/*.JPG')
     for fname in images:
         #    fname_2 = fname 
         img = cv2.imread(fname)
         #    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
         img_u = cv2.undistort(img, K, dist)
-        outfname = "./scene_2/" + str(count)+".JPG"
-        check = pathlib.Path("./scene_2/0.JPG")
-        #print(check.is_file())
-        if not check.is_file():
-            cv2.imwrite(str(outfname),img_u)
+        outfname = "./Scene/" + str(count)+".JPG"
+#        check = pathlib.Path("./scene_3/0.JPG")
+#        #print(check.is_file())
+#        if not check.is_file():
+        cv2.imwrite(str(outfname),img_u)
         count = count + 1
 
 
@@ -113,7 +115,33 @@ def Homographies(Points3D, RotMtx, tvec, K):
         h = K @ (h @ K.I)
         H = H + (h,)
     return H
-    
+
+#def imgWarping():
+#    
+#    return Wimages
+
+def ImgAbsDiff(img1, Wimages):
+    ImgAbsDiff = ()  
+    for img in Wimages:
+        absDiff = cv2.absdiff(img1, img)
+        absDiff = cv2.boxFilter(absDiff, -1, (15,15), -1)
+        ImgAbsDiff = ImgAbsDiff + (absDiff,)    
+    return ImgAbsDiff
+
+
+def MakeDepthMap(absDifImg, Depths):
+    scale = 255/20
+    [n,m] = absDifImg[0].shape
+    ImDepthMap = np.zeros((n,m), dtype = 'uint8')
+    for x in range(n):
+        for y in range(m):
+            min = 255
+            for index in range(20):
+                if absDifImg[index][x][y] < min:
+                    min = absDifImg[index][x][y]
+                    d = index
+            ImDepthMap[x][y] = int(d*scale)
+    return ImDepthMap
 
 ret, K, dist = Camera_Calibration()    
 undistortion()
@@ -130,8 +158,8 @@ undistortion()
 #kp2 = sift.detectAndCompute(img,None)
 
 
-img1 = cv2.imread('./scene_2/0.JPG') # queryImage
-img2 = cv2.imread('./scene_2/3.JPG') # trainImage
+img1 = cv2.imread('./Scene/0.JPG') # queryImage
+img2 = cv2.imread('./Scene/1.JPG') # trainImage
 img1 = cv2.cvtColor(img1,cv2.COLOR_BGR2GRAY)
 img2 = cv2.cvtColor(img2,cv2.COLOR_BGR2GRAY)
 
@@ -245,14 +273,14 @@ PixelP = K @ PixelP
 PixelP = cv2.convertPointsFromHomogeneous(PixelP.T)
 
 
-img1 = cv2.imread('./scene_2/0.JPG')
-
+img1 = cv2.imread('./Scene/0.JPG')
+RGBimg1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
     
 for point in points2d_1.astype(int).transpose():
     img1 = cv2.circle(img1,tuple(point),10,(0, 255, 0),-1)
 
 for point in PixelP.astype(int):
-    img1 = cv2.circle(img1,tuple(point[0]),6,(255, 0, 0),-1)
+    img1 = cv2.circle(img1,tuple(point[0]),6,(0, 0, 255),-1)
 
 img1 = cv2.resize(img1, (0,0), fx=0.3, fy=0.3) 
 
@@ -266,28 +294,50 @@ cv2.imwrite('Re-projectionPoints.png',img1)
 
 H = Homographies(Points3D, R2, t, K)
 
-img1 = cv2.imread('./scene_2/0.JPG')
+img1 = cv2.imread('./Scene/0.JPG')
 img1 = cv2.cvtColor(img1,cv2.COLOR_BGR2GRAY)
 
 Wimages = ()
+count = 0 
 for h in H:
     imgWarp = cv2.warpPerspective(img2, h, (img2.shape[1], img2.shape[0]))
     Wimages = Wimages + (imgWarp,)
+    outfname = "./Warped_Img/Iwarp" + str(count)+".jpg"
+    cv2.imwrite(outfname,imgWarp)
+    count = count + 1
 
+#Warped = ()
 count = 0   
 for img in Wimages:
     imgWarp = cv2.addWeighted(img1, 0.5, img, 0.5, 0)
-    outfname = "Iwarp" + str(count)+".png"
+#    Warped = Warped + (imgWarp,)
+    outfname = "./Plane_Sweeping/Iwarp" + str(count)+".jpg"
     cv2.imwrite(outfname,imgWarp)
     count = count + 1
+
+absDifImg = ImgAbsDiff(img1, Wimages)
+
+vals = []
+for img in absDifImg:
+    vals.append(img[401][1001])
     
-imgWarp = cv2.addWeighted(img1, 0.5, Wimages[0], 0.5, 0)
+
 
 imgWarp = cv2.resize(imgWarp, (0,0), fx=0.3, fy=0.3) 
 cv2.imshow('img',imgWarp)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
+minVal = Points3D.min()
+maxVal = Points3D.max()
+Depths = np.linspace(minVal, maxVal, num=20)
+
+ImDepthMap = MakeDepthMap(absDifImg, Depths)
+
+ImDepthMap = cv2.resize(ImDepthMap, (0,0), fx=0.3, fy=0.3) 
+cv2.imshow('img',ImDepthMap)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
 
 
