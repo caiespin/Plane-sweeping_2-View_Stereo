@@ -54,7 +54,7 @@ Finally, in Part 4 we implement the sweeping-stereo approach to calculating a de
 \section{Camera calibration}
 In this section we perform the camera calibration by taking many (some websites recommend more than 20) images of a known target.  We selected a fixed focal length lens to minimize any possible variations between the calibration images and the final scene images. The camera used is a Fuji X-E1 with a 60mm prime lens set to f/8.  The target is a 6x9 checkerboard target taken from OpenCV.org, taped it to a flat board and we captured images of it at multiple orientations.  The images are shown in fig(\ref{fig:chkbd}) below.
  \begin{figure}[htb!]
-%    \includegraphics[width=\textwidth]{}
+    \includegraphics[width=\textwidth]{../CamCal}
     \caption{Calibration Images of 6x9 checkerboard pattern.}
     \label{fig:chkbd}
 \end{figure}
@@ -67,22 +67,26 @@ The intrinsic matrix is calculated by using the \verb|cv2.calibrateCamera()| fun
 		0 & 0 & 1
 	\end{bmatrix}
 \end{align*}
-The algorithm also estimates the radial distortion parameters of the lens and presented at a matrix of polynomial values.  The function also returns the estimation error in pixels.  The  intrinsic camera matrix and radial distortion parameters returned by the algorithm are shown below.  Note that the focal length found is accurate only to scale since we didn't use a measurement of the locations of the checkerboard corners, rather just the number of corners. The center of the sensor (downscale somewhat from the highest resolution the camera is capable of) is close however, at (1304,743).
-\begin{verbatim}
-Camera Matrix: 
-[[6.95471201e+03 0.00000000e+00 1.30414502e+03]
- [0.00000000e+00 6.95274412e+03 7.42329190e+02]
- [0.00000000e+00 0.00000000e+00 1.00000000e+00]]
-
-Vector of distortion coefficients:
-[[-7.03044644e-02  2.40329209e+00 -5.12362432e-03  1.70607379e-03
-  -7.16979565e-04]]
- \end{verbatim}
+The algorithm also estimates the radial distortion parameters of the lens and presented at a matrix of polynomial values.  The function also returns the estimation error in pixels.  The  intrinsic camera matrix and radial distortion parameters returned by the algorithm are shown below.  Note that the focal length found is accurate only to scale since we didn't use a measurement of the locations of the checkerboard corners, rather just the number of corners. The center of the sensor (downscale somewhat from the highest resolution the camera is capable of) is close however, at (1304,743). The camera matrix is:
+\begin{align*}
+	\begin{bmatrix}
+             6.95471201e+03 & 0.00000000e+00  & 1.30414502e+03\\
+            0.00000000e+00  & 6.95274412e+03  & 7.42329190e+00\\
+            0.00000000e+00  & 0.00000000e+00  & 1.00000000e+00
+         \end{bmatrix}
+\end{align*}
+The radial distortion coefficients are:
+\begin{align*}
+	\begin{bmatrix}
+		-7.03044644e-02 & 2.40329209e+00 &  -5.12362432e-03 & 1.70607379e-03  &  -7.16979565e-04
+	\end{bmatrix}
+ \end{align*}
  The reprojection mean square error is found to be approximately 0.250 pixels.
+ \FloatBarrier
 
 %====================================Part 2=======================================
 \section{Scene Images}
-Now that we have our camera calibration we need to take images of a scene.  We worked with a few different ones, eventually using one that presented multiple parallel planes that could be resolved into discrete depths.  We also tried to collect objects with identifiable texture.  One interesting feature of our scene is that it has a very contrasty natural stone. This actually proved to be not as beneficial as we expected and created interesting artifacts in the final depth map of the scene.  The two images are shown below.
+Now that we have our camera calibration we need to take images of a scene.  We worked with a few different ones, eventually using one that presented multiple parallel planes that could be resolved into discrete depths.  We also tried to collect objects with identifiable texture.  One interesting feature of our scene is that it has a very contrasty natural stone. This actually proved to be not as beneficial as we expected and created interesting artifacts in the final depth map of the scene.  The two images are shown in figs(\ref{fig:sn1},\ref{fig:sn2}).
 
 \begin{figure}
     \centering
@@ -102,19 +106,121 @@ Now that we have our camera calibration we need to take images of a scene.  We w
 
 %====================================Part 3=======================================
 \section{Relative Camera Pose}
-1.Epipolar lines
-2. Write down the matrix 𝑅𝑅, 𝒓𝑅 you found. 𝐿
- 3. Show the re-projected feature points on the first image
+After taking two reasonable images of the same scene, the next step is to account for the distortion inherent in the camera by employing the \verb|undistortPoints()| function on both images.  Once they have been corrected we find feature points that exist in both images.  The OpenCV function \verb|sift.detectAndCompute()| is used to identify good candidate feature points in both images.  The points are then sent to a matching function, in this case \verb|cv2.FlannBasedMatcher()|.  This function generates a distance feature that is used to discriminate between good features. We explored several tutorials within OpenCV documentation primarily the one on camera calibration. 
+
+Armed with these feature points we can explore a few of them to determine epipolar lines that connect feature points in one image to the corresponding points in the other image.  To compute the epipolar lines we need first to determine the Fundamental matrix, which consists of the transformation matrix that converts pixels in one image to pixels in the other image.  The function \verb|cv2.findFundamentalMat()| takes the matched points and returns the Fundamental matrix.  This matrix is used to calculate the epipoles along with matching feature points.  Strictly speaking computing the epipoles is not used for computing the depth map, however, they are helpful by providing visual confirmation of successful feature point matches. A sample of our matching points connected by epipolar lines is shown in figs(\ref{fig:epi_a},\ref{fig:epi_b},\ref{fig:epi_c},\ref{fig:epi_d}) below.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{../epi2}
+        \caption{Feature points in image 1.}
+        \label{fig:epi_a}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{../epi1}
+        \caption{Epipolar lines for the points in image 1.}
+        \label{fig:epi_b}
+    \end{subfigure}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{../epi3}
+        \caption{Epipolar lines for the points in image 2.}
+        \label{fig:epi_c}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{../epi4}
+        \caption{Feature points in image 2.}
+        \label{fig:epi_d}
+    \end{subfigure}
+\end{figure}
+
+To determine the relative camera pose (the rotation matrix and translation vector) between the two cameras, we next calculate the Essential matrix which is transformation matrix that translates points in one camera centered reference frame to the other.  We employed the \verb|findEssentialMat()| function which takes parameters extracted from the intrinsic matrix that we found in Part 1.  From the Essential matrix it is possible to find the relative camera pose, however, it is ambiguous--it returns two possible rotation matrices and one translation vector, but we do not know which rotation matrix is correct, nor the sign of the translation vector.  To resolve this ambiguity we calculated the homogeneous (four-dimensional) points corresponding to our pixels by providing the \verb|triangulatePoints()| function with the four possible combinations.  This function takes as its input the camera pose information for both cameras.  We want the reference system to be centered on our first camera optical center, so we take its rotation matrix to be the identity matrix and the zero vector as its translation vector.  Only points that have positive z value are correct.  Those were associated with our second rotation matrix and positive translation vector.  The rotation matrix is therefore:
+\begin{equation*}
+	R _L^R= 
+	\begin{bmatrix} 
+	0.97625117 & 0.03161439 & -0.2143226\\
+       -0.03292285 & 0.99945468 &  -0.00253737\\
+        0.21412551 & 0.00953322 &  0.97675963
+       \end{bmatrix}
+\end{equation*} 
+And the translation vector is:
+\begin{align*}
+	\bf{r}^R = 
+	\begin{bmatrix} 
+		0.99362709\\
+               0.01693907\\
+               0.11143728
+	\end{bmatrix}
+\end{align*}
+
+Finally, we take the (homogenous) points in the camera 1 reference system and reproject the points onto the first image.  To project these points onto image 1, we need to convert twice from homogenous coordinates, then multiply by the intrinsic calibration matrix. These points are shown below in fig(\ref{fig:reproj}).  Of interest is the large number of feature points located in the natural stone also several distinct planes are visible.
+
+ \begin{figure}[htb!]
+    \includegraphics[width=\textwidth]{../Re-projectionPoints}
+    \caption{Re-projected point superimposed on the original points.  There is generally a very good correspondence.}
+    \label{fig:reproj}
+\end{figure}
+\FloatBarrier
+
 %====================================Part 4=======================================
 \section{Plane Sweeping Stereo}
+In this section we calculate a depth map for the combined scene.  First we determine the minimum and maximum depth by looking at the third coordinate of our homogeneous points in the scene.  We find the minimum depth to be approximately 3.36455 and the maximum depth = 3.97782.  We then create 20 equidistant planes and generate a homography for each plane. To generate the homography, we first set the pose matrices of the camera to have the normal to the plane and the depth of the plane in the last row of the equation:
+\begin{align*}
+	P1 = \begin{bmatrix}
+		I & 0\\
+		n^T & d_i
+		\end{bmatrix}, 
+	P2 = \begin{bmatrix}
+		R_L^R& {\bf r}^R\\
+		n^T & d_i
+		\end{bmatrix}
+\end{align*}
+With this choice of pose matrices the full homography for each depth is calculated as:
+\begin{align*}
+H = K \left ( P1 P2 \right )_{1:3} K^{-1}
+\end{align*}
+where the meaning of $\left ( P1 P2 \right )_{1:3}$ is that with this homography we know the last column and last row of the $4 \times 4$ matrix are sent to 0.  The warped images are shown below.
+ \begin{figure}[htb!]
+    \includegraphics[width=\textwidth]{../ImagesWarping}
+    \caption{The twenty warped images after applying the homography that translates each image into the first camera pixel reference frame.}
+    \label{fig:reproj}
+\end{figure}
 
-Deliverables:
-min and max depths found
-N=20 warped images
-Depth image (grayscale)
+It is interesting to see the correspondence of the images as the planes are warped.  Three such images are below in figs(\ref{fig:swpln1},\ref{fig:swpln2},\ref{fig:swpln3})
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.3\textwidth}
+        \includegraphics[width=\textwidth]{../Plane_Sweeping/Iwarp1.jpg}
+        \caption{The basket in focus.}
+        \label{fig:swpln1}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.3\textwidth}
+        \includegraphics[width=\textwidth]{../Plane_Sweeping/Iwarp11.jpg}
+        \caption{Bicycle is now in focus}
+        \label{fig:swpln2}
+    \end{subfigure}
+     \begin{subfigure}[b]{0.3\textwidth}
+        \includegraphics[width=\textwidth]{../Plane_Sweeping/Iwarp14.jpg}
+        \caption{The Python text in focus.}
+        \label{fig:swpln3}
+    \end{subfigure}
+\end{figure}
+
+Finally, the depth map itself is calculated.  This is done by first evaluating the absolute difference between each warped image relative to the image 1.  Then  a box filter function from OpenCV is applied to smooth some of the noise in the image resulting from the subtraction.  Finally the minimum absolute difference for each pixel location is computed.  The index of the minimum difference corresponds to the distance of that plane, the value of which is placed in our depth map image at the pixel location in question.  The final depth map is shown in fig(\ref{fig:depth}),  In general the map is reasonable with a large black rectangle on the lower right of the image which is the nearest plane to the camera.  The central rectangle corresponding to the mosaic is also reasonable. The songbooks in the far plane also appear.  The most interesting result, however, is how the front face of the granite stone has diagonal lines running across it.  We hypothesize that this is an artifact due to the speckled pattern of the stone and the filtering function we apply to smooth the image. It appears to alias what should be a well-defined surface.  Perhaps with more manipulation we could resolve this front plane as well. Alternatively, this may be due to the non-parallelism of the camera focal plane and the stone face. 
+ \begin{figure}[htb!]
+    \includegraphics[width=\textwidth]{../ImDepthMap}
+    \caption{The computed depth map}
+    \label{fig:depth}
+\end{figure}
+\FloatBarrier
 %====================================Conclusions=======================================
 \section{Conclusions}
-
+In conclusion, we were able to calibrate a camera using routines  and test patterns provided in OpenCV and test patterns.  With the camera parameters and a sample scene we were able to find matching features and calculate the relative pose of one camera to the other. Knowing the relative orientation and position of the camera allows us to triangulate points in the real world and find their depth, that is how far away from the camera focal plan they lie.  What it doesn't tell us is an absolute distance since all depths are proportional to the baseline vector connecting the optical centers of the two cameras. It is clear, however, that by carefully controlling the location of one camera relative to another a true stereo camera could be constructed.
 
 
 
