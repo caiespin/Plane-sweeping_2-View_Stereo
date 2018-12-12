@@ -391,7 +391,7 @@ cv2.imwrite("CamCal.JPG",ImsCal)
 
 #-----------------------------Image Warping------------------------------
 
-imagesWarp = ReadMultipleImages('./Warped_Img/*.JPG','Iwarp')
+imagesWarp = ReadMultipleImages('./Warped_Img/*.jpg','Iwarp')
 
 #Concatenate horizontaly 
 ImsWarp_r1 = np.concatenate((cv2.resize(imagesWarp[0], (0,0), fx=0.2, fy=0.2), cv2.resize(imagesWarp[1], (0,0), fx=0.2, fy=0.2)), axis=1)
@@ -419,7 +419,7 @@ ImsWarp_C3 = np.concatenate((ImsWarp_C2, ImsWarp_r3), axis=0)
 ImsWarp_C4 = np.concatenate((ImsWarp_C3, ImsWarp_r4), axis=0)
 ImsWarp = np.concatenate((ImsWarp_C4, ImsWarp_r5), axis=0)
 
-cv2.imwrite("ImagesWarping.JPG",ImsWarp)
+cv2.imwrite("ImagesWarping.jpg",ImsWarp)
 
 
 
